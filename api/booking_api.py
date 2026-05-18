@@ -19,9 +19,9 @@ class BookingAPI(BaseAPI):
         return self.post(url, json=BOOKING_DATA)
 
     @allure.step("Получить бронь по ID: {booking_id}")
-    def get_booking(self, booking_id):
+    def get_booking(self, booking_id, expected_status=200):
         url = f"{self.base_url}{BOOKING}/{booking_id}"
-        return self.get(url)
+        return self.get(url, expected_status=expected_status)
 
     @allure.step("Полностью обновить бронь: {booking_id}")
     def update_booking(self, booking_id):
@@ -43,7 +43,7 @@ class BookingAPI(BaseAPI):
     def validate_schema():
         jsonschema.validate(instance=BOOKING_DATA, schema=BOOKING_SCHEMA)
 
-    @allure.step("Проверяет значение поля response_json[key]")
-    def assert_field(self, response_json, key, reference):
-        assert response_json[key] == reference[key], \
-            f"Поле '{key}': ожидалось '{reference[key]}', получено '{response_json[key]}'"
+    @staticmethod
+    def assert_field(response_json, key, data):
+        with allure.step(f"Проверяет что response_json[{key}] == {data[key]}"):
+            assert response_json[key] == data[key]
