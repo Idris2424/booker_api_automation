@@ -1,56 +1,44 @@
 import allure
-import pytest
-from data.booking_data import BOOKING_DATA
-from data.updated_data import UPDATED_DATA
+
+from api.booking_api import BookingAPI
+from steps.booking_steps import BookingSteps
 
 
 class TestBookingE2E:
 
     @allure.title("E2E: полный цикл бронирования")
-    def test_booking_e2e(self, booking_api, auth_token, booking_id):
+    def test_booking_e2e(self, auth_token):
+        steps = BookingSteps(auth_token)
 
-        with allure.step("1. Получить токен авторизации"):
-            assert auth_token is not None
+        # 1. Получить токен авторизации
+        steps.verify_token(auth_token)
 
-        with allure.step("2-3. Создать новую бронь и сохранить bookingid"):
-            response = booking_api.create_booking()
-            assert "bookingid" in response.json(), "bookingid отсутствует в ответе"
-            booking_id = response.json()["bookingid"]
-            assert booking_id is not None, "booking_id не получен"
+        # 2-3. Создать новую бронь и сохранить bookingid
+        booking_id = steps.create_booking()
 
-        with allure.step("4. Получить созданную бронь по ID"):
-            response = booking_api.get_booking(booking_id)
-            booking_api.assert_field(response.json(), "firstname", BOOKING_DATA)
+        # 4. Получить созданную бронь по ID
+        steps.get_booking(booking_id)
 
-        with allure.step("5. Валидировать схему ответа"):
-            booking_api.validate_schema()
+        # 5. Валидировать схему ответа
+        steps.validate_schema()
 
-        with allure.step("6. Обновить бронь (полное обновление)"):
-            response = booking_api.update_booking(booking_id)
-            booking_api.assert_field(response.json(), "firstname", UPDATED_DATA)
+        # 6. Обновить бронь (полное обновление)
+        steps.full_update(booking_id)
 
-        with allure.step("7. Проверить обновление"):
-            response = booking_api.get_booking(booking_id)
-            booking_api.assert_field(response.json(), "lastname", UPDATED_DATA)
+        # 7. Проверить обновление
+        steps.verify_update(booking_id)
 
-        with allure.step("8. Частично обновить бронь (PATCH)"):
-            response = booking_api.partial_update_booking(booking_id)
-            booking_api.assert_field(response.json(), "totalprice", UPDATED_DATA)
-            booking_api.assert_field(response.json(), "lastname", UPDATED_DATA)
+        # 8. Частично обновить бронь (PATCH)
+        steps.partial_update(booking_id)
 
-        with allure.step("11. Проверить время ответа"):
-            response = booking_api.get_booking(booking_id)
-            elapsed = response.elapsed.total_seconds()
-            assert elapsed < 2.0, f"Время ответа превысило 2 сек: {elapsed:.2f} сек"
+        # 9. Проверить время ответа
+        steps.verify_response_time(booking_id)
 
-        with allure.step("12. Проверить заголовок ответа"):
-            response = booking_api.get_booking(booking_id)
-            content_type = response.headers["Content-Type"]
-            assert "application/json" in content_type, \
-                f"Ожидался Content-Type 'application/json', получен '{content_type}'"
+        # 10. Проверить заголовок ответа
+        steps.verify_content_type(booking_id)
 
-        with allure.step("9. Удалить бронь"):
-            booking_api.delete_booking(booking_id)
+        # 11. Удалить бронь
+        steps.delete_booking(booking_id)
 
-        with allure.step("10. Проверить удаление"):
-            booking_api.get_booking(booking_id, expected_status=404)
+        # 12. Проверить удаление
+        steps.verify_deletion(booking_id)
