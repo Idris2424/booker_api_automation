@@ -15,8 +15,7 @@ class BookingAPI(BaseAPI):
 
     @allure.step("Создать новую бронь")
     def create_booking(self, data=None):
-        if data is None:
-            data = BOOKING_DATA
+        data = data if data else BOOKING_DATA
         url = f"{self.base_url}{BOOKING}"
         return self.post(url, json=data)
 
@@ -27,15 +26,13 @@ class BookingAPI(BaseAPI):
 
     @allure.step("Полностью обновить бронь: {booking_id}")
     def update_booking(self, booking_id, data=None):
-        if data is None:
-            data = UPDATED_DATA
+        data = data if data else UPDATED_DATA
         url = f"{self.base_url}{BOOKING}/{booking_id}"
         return self.put(url, json=data, cookies={"token": self.auth_token})
 
     @allure.step("Частично обновить бронь: {booking_id}")
     def partial_update_booking(self, booking_id, data=None):
-        if data is None:
-            data = UPDATED_DATA
+        data = data if data else UPDATED_DATA
         url = f"{self.base_url}{BOOKING}/{booking_id}"
         return self.patch(url, json=data, cookies={"token": self.auth_token})
 
