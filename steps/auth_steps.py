@@ -1,8 +1,7 @@
 import allure
 from api.auth_api import AuthAPI
-from api.booking_api import BookingAPI
-from data.auth_data import AUTH_DATA_WRONG_PASS, AUTH_DATA_WRONG_USERNAME
 from data.booker_url import BOOKING
+from data.booking_data import BOOKING_DATA
 from data.updated_data import UPDATED_DATA
 
 
@@ -12,78 +11,63 @@ class AuthSteps(AuthAPI):
         super().__init__()
         self.token = None
         self.booking_id = None
+        self.valid_token = None
 
 
     @allure.step("Создать бронь для auth-тестов")
-    def create_booking_for_test(self, auth_token):
-        booking_api = BookingAPI(auth_token)
-        response = booking_api.create_booking()
+    def create_booking_for_test(self):
+        url = f"{self.base_url}{BOOKING}"
+        response = self.post(url, json=BOOKING_DATA)
         self.booking_id = response.json()["bookingid"]
         assert self.booking_id is not None, "booking_id не получен"
 
     @allure.step("Удалить бронь после теста")
-    def delete_booking_after_test(self, auth_token):
-        BookingAPI(auth_token).delete_booking(self.booking_id)
-
+    def delete_booking_after_test(self):
+        url = f"{self.base_url}{BOOKING}/{self.booking_id}"
+        self.delete(url, cookies={"token": self.valid_token})
 
     @allure.step("Получить токен с валидными данными и проверить статус 200")
     def get_token_with_valid_credentials(self):
         self.token = self.get_auth_token()
+        self.valid_token = self.token
         assert self.token is not None, "Токен отсутствует в ответе"
         return self.token
 
-
-    @allure.step("Получить токен с неверным паролем")
-    def get_token_with_wrong_password(self):
+    @allure.step("Получить токен с невалидными данными")
+    def get_token_with_invalid_credentials(self, credentials):
         url = f"{self.base_url}/auth"
-        response = self.post(url, expected_status=200, json=AUTH_DATA_WRONG_PASS)
-        self.token = response.json().get("token")
-        return self.token
+        response = self.post(url, expected_status=200, json=credentials)
+        invalid_token = response.json().get("token")
+        return invalid_token
 
     @allure.step("Убедиться, что токен от неверного пароля не работает для защищённых запросов")
-    def verify_invalid_token(self):
+    def verify_invalid_token(self, invalid_token):
         url = f"{self.base_url}{BOOKING}/{self.booking_id}"
-        response = self.put(
+        self.put(
             url,
             expected_status=403,
             json=UPDATED_DATA,
-            cookies={"token": self.token}
+            cookies={"token": invalid_token}
         )
+
+    @allure.step("Отправить PUT запрос с токеном")
+    def put_booking_with_token(self, token, expected_status=200):
+        url = f"{self.base_url}{BOOKING}/{self.booking_id}"
+        response = self.put(
+            url,
+            expected_status=expected_status,
+            json=UPDATED_DATA,
+            cookies={"token": token} if token else {}
+        )
+        if expected_status == 200:
+            assert response.json()["firstname"] == UPDATED_DATA["firstname"], \
+                "Данные брони не обновились после PUT с валидным токеном"
         return response
-
-
-    @allure.step("Получить токен с несуществующим пользователем")
-    def get_token_with_fake_user(self):
-        url = f"{self.base_url}/auth"
-        response = self.post(url, expected_status=200, json=AUTH_DATA_WRONG_USERNAME)
-        self.token = response.json().get("token")
-        return self.token
 
 
     @allure.step("Использовать валидный токен для PUT /booking")
-    def use_valid_token_for_protected_request(self):
-        url = f"{self.base_url}{BOOKING}/{self.booking_id}"
-        response = self.put(
-            url,
-            expected_status=200,
-            json=UPDATED_DATA,
-            cookies={"token": self.token}
-        )
-        assert response.json()["firstname"] == UPDATED_DATA["firstname"], \
-            "Данные брони не обновились"
-        return response
-
-
-    @allure.step("Использовать неверный токен для PUT — ожидаем 403")
-    def use_invalid_token_for_protected_request(self):
-        url = f"{self.base_url}{BOOKING}/{self.booking_id}"
-        response = self.put(
-            url,
-            expected_status=403,
-            json=UPDATED_DATA,
-            cookies={"token": "invalid"}
-        )
-        return response
+    def put_booking_with_valid_token(self):
+        self.put_booking_with_token(token=self.token, expected_status=200)
 
 
     @allure.step("Отправить PUT без токена — ожидаем 403")
