@@ -15,6 +15,6 @@ def auth_steps():
 
 @pytest.fixture
 def booking_for_auth_test(auth_steps):
-    auth_steps.create_booking_for_test()
+    auth_steps.create_booking()
     yield
-    auth_steps.delete_booking_after_test()
+    auth_steps.delete_booking()
