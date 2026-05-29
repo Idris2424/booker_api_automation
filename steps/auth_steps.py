@@ -1,29 +1,17 @@
 import allure
-from api.auth_api import AuthAPI
 from data.auth_data import AUTH_DATA
 from data.booker_url import BOOKING
 from data.booking_data import BOOKING_DATA
 from data.updated_data import UPDATED_DATA
+from utils.base_booking_steps import BaseBookingSteps
 
 
-class AuthSteps(AuthAPI):
+class AuthSteps(BaseBookingSteps):
 
     def __init__(self):
         super().__init__()
         self.token = None
-        self.booking_id = None
 
-    @allure.step("Создать бронь для auth-тестов")
-    def create_booking(self):
-        url = f"{self.base_url}{BOOKING}"
-        response = self.post(url, json=BOOKING_DATA)
-        self.booking_id = response.json()["bookingid"]
-        assert self.booking_id is not None, "booking_id не получен"
-
-    @allure.step("Удалить бронь после теста")
-    def delete_booking(self):
-        url = f"{self.base_url}{BOOKING}/{self.booking_id}"
-        self.delete(url, cookies={"token": self.token})
 
     @allure.step("Получить токен")
     def get_token(self, credentials=AUTH_DATA):
@@ -87,8 +75,8 @@ class AuthSteps(AuthAPI):
 
     @allure.step("Получить токен повторно и убедиться, что оба валидны")
     def get_token_twice_and_verify_both(self):
-        first_token = self.get_auth_token()
-        second_token = self.get_auth_token()
+        first_token = self.get_token()
+        second_token = self.get_token()
         assert first_token is not None, "Первый токен не получен"
         assert second_token is not None, "Второй токен не получен"
         assert isinstance(first_token, str) and len(first_token) > 0, \

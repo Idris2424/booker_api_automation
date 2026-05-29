@@ -1,6 +1,7 @@
 import pytest
 from api.auth_api import AuthAPI
 from steps.auth_steps import AuthSteps
+from steps.get_booking_steps import GetBookingSteps
 
 
 @pytest.fixture(scope="session")
@@ -14,7 +15,8 @@ def auth_steps():
     return steps
 
 @pytest.fixture
-def booking_for_auth_test(auth_steps):
-    auth_steps.create_booking()
-    yield
-    auth_steps.delete_booking()
+def get_steps(auth_token):
+    steps = GetBookingSteps()
+    steps.create_booking(auth_token)
+    yield steps
+    steps.delete_booking(auth_token)
