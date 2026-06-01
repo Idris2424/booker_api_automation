@@ -21,3 +21,8 @@ class BaseBookingSteps(BaseAPI):
     def delete_booking(self, token):
         url = f"{self.base_url}{BOOKING}/{self.booking_id}"
         self.delete(url, cookies={"token": token})
+
+    @staticmethod
+    def _assert_list_response(data):
+        assert isinstance(data, list), "Ответ должен быть массивом"
+        assert len(data) > 0, "Список броней не должен быть пустым"

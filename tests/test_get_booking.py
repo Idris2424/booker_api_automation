@@ -24,6 +24,7 @@ class TestGetBooking:
     @allure.title("TC_GET_005: Получение существующей брони по ID")
     def test_get_booking_by_id(self, get_steps):
         get_steps.get_booking_by_id()
+        get_steps.verify_booking_data()
         get_steps.validate_booking_schema()
 
     @allure.title("TC_GET_006: Получение несуществующей брони по ID")

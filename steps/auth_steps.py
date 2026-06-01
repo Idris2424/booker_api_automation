@@ -1,7 +1,6 @@
 import allure
 from data.auth_data import AUTH_DATA
 from data.booker_url import BOOKING
-from data.booking_data import BOOKING_DATA
 from data.updated_data import UPDATED_DATA
 from utils.base_booking_steps import BaseBookingSteps
 
@@ -27,27 +26,6 @@ class AuthSteps(BaseBookingSteps):
         self.token = token
         return self.token
 
-    @allure.step("Получить токен с невалидными данными")
-    def get_token_with_invalid_credentials(self, credentials):
-        url = f"{self.base_url}/auth"
-        response = self.post(url, expected_status=200, json=credentials)
-        invalid_token = response.json().get("token")
-        return invalid_token
-
-    @allure.step("Убедиться, что токен от неверного пароля не работает для защищённых запросов")
-    def verify_invalid_token(self, invalid_token):
-        """
-        Проверяет что невалидный токен не даёт доступ к защищённому эндпоинту.
-        Ожидаемый статус 403 является неявным assert-ом через _check_status в BaseAPI.
-        """
-        url = f"{self.base_url}{BOOKING}/{self.booking_id}"
-        self.put(
-            url,
-            expected_status=403,
-            json=UPDATED_DATA,
-            cookies={"token": invalid_token}
-        )
-
     @allure.step("Отправить PUT запрос с токеном")
     def put_booking_with_token(self, token, expected_status=200, data=UPDATED_DATA):
         url = f"{self.base_url}{BOOKING}/{self.booking_id}"
@@ -66,12 +44,11 @@ class AuthSteps(BaseBookingSteps):
     def put_booking_with_valid_token(self):
         self.put_booking_with_token(token=self.token, expected_status=200)
 
-
     @allure.step("Проверить формат токена: строка, не пустая")
     def validate_token_format(self):
         assert isinstance(self.token, str), \
             f"Токен должен быть строкой, получен {type(self.token)}"
-        assert len(self.token) > 0, "Токен не должен быть пустой"
+        assert len(self.token) > 0, "Токен не должен быть пустым"
 
     @allure.step("Получить токен повторно и убедиться, что оба валидны")
     def get_token_twice_and_verify_both(self):

@@ -18,71 +18,57 @@ class GetBookingSteps(BaseBookingSteps):
     def get_all_bookings(self):
         url = f"{self.base_url}{BOOKING}"
         self.response = self.get(url)
-        data = self.response.json()
-        assert isinstance(data, list), "Ответ должен быть массивом"
-        assert len(data) > 0, "Список броней не должен быть пустым"
-
+        self._assert_list_response(self.response.json())
 
     @allure.step("Получить брони с фильтром firstname={firstname}")
     def get_bookings_by_firstname(self, firstname):
         url = f"{self.base_url}{BOOKING}"
         self.response = self.get(url, params={"firstname": firstname})
-        data = self.response.json()
-        assert isinstance(data, list), "Ответ должен быть массивом"
-        assert len(data) > 0, f"Не найдено броней с firstname={firstname}"
-
+        self._assert_list_response(self.response.json())
 
     @allure.step("Получить брони с фильтром lastname={lastname}")
     def get_bookings_by_lastname(self, lastname):
         url = f"{self.base_url}{BOOKING}"
         self.response = self.get(url, params={"lastname": lastname})
-        data = self.response.json()
-        assert isinstance(data, list), "Ответ должен быть массивом"
-        assert len(data) > 0, f"Не найдено броней с lastname={lastname}"
-
+        self._assert_list_response(self.response.json())
 
     @allure.step("Получить брони с фильтром по датам checkin={checkin} checkout={checkout}")
     def get_bookings_by_dates(self, checkin, checkout):
         url = f"{self.base_url}{BOOKING}"
         self.response = self.get(url, params={"checkin": checkin, "checkout": checkout})
-        data = self.response.json()
-        assert isinstance(data, list), "Ответ должен быть массивом"
-        assert len(data) > 0, "Не найдено броней в указанном диапазоне дат"
+        self._assert_list_response(self.response.json())
 
-
-    @allure.step("Получить бронь по ID и проверить данные")
-    def get_booking_by_id(self):
+    @allure.step("Получить бронь по ID")
+    def get_booking_by_id(self, expected_status=200):
         url = f"{self.base_url}{BOOKING}/{self.booking_id}"
-        self.response = self.get(url)
-        data = self.response.json()
-        assert data["firstname"] == BOOKING_DATA["firstname"], \
-            f"Ожидался firstname={BOOKING_DATA['firstname']}, получен {data['firstname']}"
-        assert data["lastname"] == BOOKING_DATA["lastname"], \
-            f"Ожидался lastname={BOOKING_DATA['lastname']}, получен {data['lastname']}"
+        self.response = self.get(url, expected_status=expected_status)
 
+    @allure.step("Проверить данные брони")
+    def verify_booking_data(self, data=BOOKING_DATA):
+        response_data = self.response.json()
+        assert response_data["firstname"] == data["firstname"], \
+            f"Ожидался firstname={data['firstname']}, получен {response_data['firstname']}"
+        assert response_data["lastname"] == data["lastname"], \
+            f"Ожидался lastname={data['lastname']}, получен {response_data['lastname']}"
 
     @allure.step("Получить несуществующую бронь — ожидаем 404")
     def get_nonexistent_booking(self):
-        url = f"{self.base_url}{BOOKING}/999999"
-        self.response = self.get(url, expected_status=404)
-
+        self.booking_id = 999999
+        self.get_booking_by_id(expected_status=404)
 
     @allure.step("Валидировать схему списка броней")
     def validate_bookings_list_schema(self):
         jsonschema.validate(instance=self.response.json(), schema=BOOKINGS_LIST_SCHEMA)
 
-
     @allure.step("Валидировать схему одной брони")
     def validate_booking_schema(self):
         jsonschema.validate(instance=self.response.json(), schema=BOOKING_SCHEMA)
-
 
     @allure.step("Проверить заголовки ответа")
     def verify_response_headers(self):
         content_type = self.response.headers.get("Content-Type", "")
         assert "application/json" in content_type, \
             f"Ожидался Content-Type 'application/json', получен '{content_type}'"
-
 
     @allure.step("Проверить время ответа < 2 сек")
     def verify_response_time(self):
