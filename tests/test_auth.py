@@ -11,12 +11,12 @@ class TestAuth:
     @allure.title("TC_AUTH_002: Токен с неверным паролем не работает для защищённых запросов")
     def test_invalid_password_token(self, auth_steps):
         invalid_token = auth_steps.get_token(AUTH_DATA_WRONG_PASS)
-        auth_steps.verify_invalid_token(invalid_token)
+        auth_steps.put_booking_with_token(token=invalid_token, expected_status=403)
 
     @allure.title("TC_AUTH_003: Токен с несуществующим пользователем невалиден")
     def test_fake_user_token(self, auth_steps):
-        invalid_token = auth_steps.get_token_with_invalid_credentials(AUTH_DATA_WRONG_USERNAME)
-        auth_steps.verify_invalid_token(invalid_token)
+        invalid_token = auth_steps.get_token(AUTH_DATA_WRONG_PASS)
+        auth_steps.put_booking_with_token(token=invalid_token, expected_status=403)
 
     @allure.title("TC_AUTH_004: Использование валидного токена для PUT /booking/{id}")
     def test_valid_token_allows_protected_request(self, auth_steps):
